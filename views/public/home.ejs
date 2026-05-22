@@ -1,0 +1,130 @@
+<%- include('../partials/header') %>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-badge">🌸 Taze & Özenli Paketleme</span>
+    <h1><%= settings?.site_tagline || 'Her Buket Bir Hikâye Anlatır' %></h1>
+    <p>Gül buketleri, aranjmanlar, saksı çiçekleri ve özel gün tasarımları — sevdiklerinize taze çiçekleri aynı gün kapınıza getiriyoruz.</p>
+    <div class="hero-actions">
+      <a href="/urunler" class="btn btn-outline">Buketleri İncele</a>
+      <a href="/gerceklestirdigimiz-isler" class="btn btn-outline">Teslimat Galerisi</a>
+    </div>
+  </div>
+</section>
+
+<section class="trust-strip">
+  <div class="container trust-grid">
+    <div class="trust-item">
+      <span>🌿</span>
+      <strong>Taze Çiçek</strong>
+      <span>Günlük tedarik</span>
+    </div>
+    <div class="trust-item">
+      <span>🚚</span>
+      <strong>Aynı Gün Teslimat</strong>
+      <span>Konya içi</span>
+    </div>
+    <div class="trust-item">
+      <span>🎀</span>
+      <strong>Özel Paketleme</strong>
+      <span>Kurdele & kart notu</span>
+    </div>
+    <div class="trust-item">
+      <span>💬</span>
+      <strong>WhatsApp Sipariş</strong>
+      <span>Hızlı iletişim</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Öne Çıkan Buketler</h2>
+    <p class="section-sub">En çok tercih edilen çiçek ve aranjmanlarımız</p>
+    <div class="product-grid">
+      <% featuredProducts.forEach(function(p) { %>
+        <article class="product-card">
+          <a href="/urun/<%= p.slug %>">
+            <div class="product-card-image">
+              <% if (p.discount_percent > 0) { %><span class="badge-discount">%<%= p.discount_percent %></span><% } %>
+              <% if (p.stock <= 0) { %><span class="badge-soldout">TÜKENDİ</span><% } %>
+              <% if (p.image_path) { %>
+                <img src="<%= p.image_path %>" alt="<%= p.title %>" loading="lazy">
+              <% } else { %>
+                <div class="product-placeholder">💐</div>
+              <% } %>
+            </div>
+            <div class="product-card-body">
+              <h3 class="product-card-title"><%= p.title %></h3>
+              <div class="product-price">
+                <span class="price-current"><%= formatPrice(p.sale_price || p.price) %></span>
+                <% if (p.sale_price) { %><span class="price-old"><%= formatPrice(p.price) %></span><% } %>
+              </div>
+            </div>
+          </a>
+          <div class="product-card-body" style="padding-top:0">
+            <button type="button" class="btn-add" data-add-cart="<%= p.id %>" data-title="<%= p.title %>" data-price="<%= p.sale_price || p.price %>" data-slug="<%= p.slug %>" <%= p.stock <= 0 ? 'disabled' : '' %>>
+              <%= p.stock <= 0 ? 'Tükendi' : 'Sepete Ekle' %>
+            </button>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+    <p style="text-align:center;margin-top:2rem"><a href="/urunler" class="btn btn-primary">Tüm Çiçekler</a></p>
+  </div>
+</section>
+
+<section style="background:white">
+  <div class="container">
+    <h2 class="section-title">Neden Flower?</h2>
+    <p class="section-sub">Özel günleriniz için güvenilir çiçekçi</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💐</div>
+        <h3>Özel Buket Tasarımı</h3>
+        <p>Düğün, nişan, doğum günü ve yıldönümü için kişiye özel buket ve aranjman hazırlıyoruz.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏥</div>
+        <h3>Hastane & Ev Teslimatı</h3>
+        <p>Geçmiş olsun, tebrik veya sürpriz buketlerinizi adresinize özenle ulaştırıyoruz.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌹</div>
+        <h3>Mevsim Çiçekleri</h3>
+        <p>Gül, lale, orkide, papatya ve mevsimlik çiçeklerle zengin ürün yelpazesi.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<% if (featuredOrgs.length) { %>
+<section>
+  <div class="container">
+    <h2 class="section-title">Teslimat Galerimiz</h2>
+    <p class="section-sub">Düğün, nişan, doğum günü ve özel gün teslimatlarımızdan örnekler</p>
+    <div class="portfolio-grid">
+      <% featuredOrgs.forEach(function(o) { %>
+        <a href="/is/<%= o.slug %>" class="portfolio-card">
+          <% if (o.image_path) { %><img src="<%= o.image_path %>" alt="<%= o.title %>" loading="lazy"><% } %>
+          <div class="portfolio-card-body">
+            <% if (o.category_name) { %><span class="portfolio-tag"><%= o.category_name %></span><% } %>
+            <h3><%= o.title %></h3>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+    <p style="text-align:center;margin-top:2rem"><a href="/gerceklestirdigimiz-isler" class="btn btn-primary">Tüm Galeri</a></p>
+  </div>
+</section>
+<% } %>
+
+<section style="background:var(--primary-light);text-align:center">
+  <div class="container" style="padding:1rem 0">
+    <h2 class="section-title" style="margin-bottom:.75rem">Sürpriz mi planlıyorsunuz?</h2>
+    <p class="section-sub" style="margin-bottom:1.25rem">WhatsApp üzerinden buket seçin, teslimat adresini paylaşın — gerisini biz halledelim.</p>
+    <a href="https://wa.me/<%= settings?.contact_whatsapp || '905075440424' %>?text=<%= encodeURIComponent('Merhaba, çiçek siparişi vermek istiyorum.') %>" class="btn btn-whatsapp" target="_blank" rel="noopener">WhatsApp ile Sipariş Ver</a>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>

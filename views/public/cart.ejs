@@ -1,0 +1,34 @@
+<%- include('../partials/header') %>
+
+<section class="cart-page" id="cartPage">
+  <div class="container cart-page-inner">
+    <header class="cart-page-header">
+      <h1>Sepetim</h1>
+      <p class="cart-page-sub">Siparişinizi tamamlamak için WhatsApp üzerinden bize ulaşın.</p>
+    </header>
+
+    <div class="cart-layout">
+      <div class="cart-main page-card">
+        <h2 class="cart-section-title">Ürünler</h2>
+        <div id="cartItems" class="cart-items-list"></div>
+      </div>
+
+      <aside id="cartSummary" class="cart-summary-panel page-card" style="display:none" aria-label="Sipariş özeti">
+        <h2 class="cart-section-title">Sipariş Özeti</h2>
+        <p class="cart-summary-total">
+          <span>Toplam</span>
+          <strong id="cartTotal">0 ₺</strong>
+        </p>
+        <p class="cart-summary-hint">Teslimat adresi ve saat bilgisini WhatsApp’ta paylaşabilirsiniz.</p>
+        <button type="button" id="btnWhatsappCheckout" class="btn btn-whatsapp btn-block" data-phone="<%= settings?.contact_whatsapp %>">
+          Siparişi WhatsApp ile Tamamla
+        </button>
+        <button type="button" id="btnClearCart" class="btn btn-ghost btn-block cart-clear-btn">Sepeti Temizle</button>
+        <a href="/urunler" class="cart-continue-link">← Alışverişe devam et</a>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<script src="/js/cart-page.js"></script>
+<%- include('../partials/footer') %>

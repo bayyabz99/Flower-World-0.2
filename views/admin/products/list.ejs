@@ -1,0 +1,50 @@
+<%- include('../../partials/admin-layout-start') %>
+
+<div class="page-actions">
+  <form class="search-bar" method="get" style="flex:1;max-width:500px;margin:0">
+    <input type="search" name="q" value="<%= search %>" placeholder="Ara Ürünler">
+    <button type="submit">Ara</button>
+  </form>
+  <a href="/admin/urunler/yeni" class="btn-admin">+ Yeni Ürün Ekle</a>
+</div>
+
+<div class="admin-card">
+  <p style="margin-bottom:1rem;color:#737373"><strong><%= products.length %></strong> öğe</p>
+  <div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Başlık</th>
+        <th>Kategori</th>
+        <th>Fiyat</th>
+        <th>Stok</th>
+        <th>Durum</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% products.forEach(function(p) { %>
+        <tr>
+          <td><strong><%= p.title %></strong></td>
+          <td><% if (p.category_name) { %><span class="tag"><%= p.category_name %></span><% } %></td>
+          <td><%= formatPrice(p.sale_price || p.price) %></td>
+          <td><%= p.stock %></td>
+          <td><span class="<%= p.is_active ? 'status-published' : 'status-draft' %>"><%= p.is_active ? 'Yayında' : 'Taslak' %></span></td>
+          <td class="table-actions">
+            <a href="/admin/urunler/<%= p.id %>/duzenle" class="btn-action btn-edit">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              <span>Düzenle</span>
+            </a>
+            <button type="button" class="btn-action btn-delete btn-delete-product" data-id="<%= p.id %>">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <span>Sil</span>
+            </button>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

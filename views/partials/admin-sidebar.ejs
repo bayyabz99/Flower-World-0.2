@@ -1,0 +1,28 @@
+<aside class="admin-sidebar">
+  <div class="admin-brand">FLOWER</div>
+  <nav class="admin-nav">
+    <div class="admin-nav-section">
+      <span>Genel</span>
+      <a href="/admin" class="<%= title === 'Dashboard' ? 'active' : '' %>">📊 Dashboard</a>
+    </div>
+    <div class="admin-nav-section">
+      <span>Çiçekler</span>
+      <a href="/admin/urunler" class="<%= title === 'Ürünler' || title.includes('Ürün') ? 'active' : '' %>">💐 Tüm Çiçekler</a>
+      <a href="/admin/urunler/yeni">➕ Yeni Buket Ekle</a>
+      <a href="/admin/kategoriler" class="<%= title === 'Ürün Kategorileri' ? 'active' : '' %>">🏷️ Çiçek Kategorileri</a>
+    </div>
+    <div class="admin-nav-section">
+      <span>Galeri</span>
+      <a href="/admin/organizasyonlar" class="<%= title.includes('Galeri') || title.includes('Organizasyon') ? 'active' : '' %>">🌸 Teslimat Galerisi</a>
+    </div>
+    <div class="admin-nav-section">
+      <span>Sipariş & Ayar</span>
+      <a href="/admin/siparisler" class="<%= title === 'Siparişler' ? 'active' : '' %>">🛒 Siparişler</a>
+      <a href="/admin/ayarlar" class="<%= title === 'Sistem Ayarları' ? 'active' : '' %>">⚙️ Sistem Ayarları</a>
+    </div>
+    <div class="admin-nav-section">
+      <a href="/" target="_blank">🌐 Siteyi Görüntüle</a>
+      <a href="/admin/cikis">🚪 Çıkış</a>
+    </div>
+  </nav>
+</aside>

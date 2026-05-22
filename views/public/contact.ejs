@@ -1,0 +1,20 @@
+<%- include('../partials/header') %>
+
+<section>
+  <div class="container" style="max-width:700px;padding:2rem 0 4rem">
+    <h1 class="section-title">İletişim</h1>
+    <p class="section-sub">Buket siparişi, özel tasarım ve teslimat bilgisi için bize ulaşın</p>
+    <div class="page-card">
+      <p><strong>📍 Mağaza & Teslimat Merkezi:</strong> <%= settings?.contact_address %></p>
+      <p style="margin-top:1rem"><strong>📞 Telefon:</strong> <a href="tel:<%= settings?.contact_phone %>"><%= settings?.contact_phone %></a></p>
+      <p style="margin-top:1rem"><strong>✉️ E-posta:</strong> <a href="mailto:<%= settings?.contact_email %>"><%= settings?.contact_email %></a></p>
+      <p style="margin-top:1rem;color:var(--text-muted);font-size:.9rem">🕐 <strong>Çalışma saatleri:</strong> Hafta içi 09:00–20:00 · Cumartesi 09:00–19:00 · Pazar kapalı (özel sipariş için WhatsApp)</p>
+      <% if (settings?.instagram_url) { %>
+        <p style="margin-top:1rem"><strong>Instagram:</strong> <a href="<%= settings.instagram_url %>" target="_blank" rel="noopener">@flower_cicek</a></p>
+      <% } %>
+      <a href="https://wa.me/<%= settings?.contact_whatsapp %>?text=<%= encodeURIComponent('Merhaba, çiçek siparişi hakkında bilgi almak istiyorum.') %>" class="btn btn-whatsapp" target="_blank" rel="noopener" style="margin-top:1.5rem">WhatsApp ile Sipariş Ver</a>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>

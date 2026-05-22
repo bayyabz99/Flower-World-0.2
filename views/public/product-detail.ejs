@@ -1,0 +1,194 @@
+<%- include('../partials/header') %>
+
+<div class="container product-detail">
+  <div class="product-gallery">
+    <div class="product-gallery-main">
+      <% if (product.images && product.images.length) { %>
+        <img src="<%= product.images[0].path %>" alt="<%= product.title %>" id="mainImage">
+      <% } else { %>
+        <div class="product-placeholder" style="font-size:5rem">💐</div>
+      <% } %>
+    </div>
+    <% if (product.images && product.images.length > 1) { %>
+      <div class="product-gallery-thumbs" id="thumbGallery">
+        <% product.images.forEach((img, idx) => { %>
+          <div class="thumb-item <%= idx === 0 ? 'active' : '' %>" data-path="<%= img.path %>" data-color="<%= img.color_name || '' %>">
+            <img src="<%= img.path %>" alt="<%= product.title %>">
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+  <div class="product-info">
+    <% if (product.category_name) { %>
+      <span class="portfolio-tag"><%= product.category_name %></span>
+    <% } %>
+    <h1><%= product.title %></h1>
+    <div class="product-price" style="margin:1rem 0">
+      <span class="price-current" style="font-size:1.75rem"><%= formatPrice(product.sale_price || product.price) %></span>
+      <% if (product.sale_price) { %>
+        <span class="price-old"><%= formatPrice(product.price) %></span>
+        <span class="badge-discount" style="position:static;display:inline-block;margin-left:.5rem">%<%= product.discount_percent %></span>
+      <% } %>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:1rem">
+      <%= product.stock > 0 ? '✓ Stokta (' + product.stock + ' adet)' : '✗ Tükendi' %>
+      <% if (product.free_shipping) { %> · Ücretsiz kargo<% } %>
+    </p>
+    <% if (product.description) { %>
+      <p><%= product.description %></p>
+    <% } %>
+    <% if (product.colors && product.colors.length) { %>
+      <div class="color-options-container" style="margin: 1.5rem 0;">
+        <label style="display:block; font-weight:600; margin-bottom:.5rem; font-size:.95rem">Çiçek Rengi:</label>
+        <div class="color-options">
+          <% product.colors.forEach((color, idx) => { %>
+            <div class="color-swatch-circle" 
+                 style="background-color: <%= color.hex %>;" 
+                 data-color-name="<%= color.name %>" 
+                 title="<%= color.name %>">
+            </div>
+          <% }) %>
+        </div>
+        <input type="hidden" id="selectedColorInput" value="">
+      </div>
+    <% } %>
+    <div class="qty-control">
+      <button type="button" class="btn-qty" id="qtyMinus" aria-label="Azalt">−</button>
+      <input type="number" id="qty" value="1" min="1" max="<%= product.stock %>" readonly>
+      <button type="button" class="btn-qty" id="qtyPlus" aria-label="Artır">+</button>
+    </div>
+    <button type="button" class="btn btn-primary btn-block" id="addToCartBtn"
+      data-id="<%= product.id %>"
+      data-title="<%= product.title %>"
+      data-price="<%= product.sale_price || product.price %>"
+      data-slug="<%= product.slug %>"
+      <%= product.stock <= 0 ? 'disabled' : '' %>>
+      Sepete Ekle
+    </button>
+    <a href="https://wa.me/<%= settings?.contact_whatsapp %>?text=<%= encodeURIComponent(product.title + ' hakkında bilgi almak istiyorum') %>" class="btn btn-whatsapp btn-block" style="margin-top:.75rem" target="_blank" rel="noopener">WhatsApp ile Sor</a>
+  </div>
+</div>
+
+<% if (related.length) { %>
+<section>
+  <div class="container">
+    <h2 class="section-title">Benzer Buketler</h2>
+    <div class="product-grid">
+      <% related.forEach(function(p) { %>
+        <a href="/urun/<%= p.slug %>" class="product-card">
+          <div class="product-card-image">
+            <% if (p.image_path) { %><img src="<%= p.image_path %>" alt="<%= p.title %>"><% } %>
+          </div>
+          <div class="product-card-body">
+            <h3 class="product-card-title"><%= p.title %></h3>
+            <span class="price-current"><%= formatPrice(p.sale_price || p.price) %></span>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<script>
+const qty = document.getElementById('qty');
+const max = <%= product.stock %>;
+document.getElementById('qtyMinus')?.addEventListener('click', () => { if (+qty.value > 1) qty.value = +qty.value - 1; });
+document.getElementById('qtyPlus')?.addEventListener('click', () => { if (+qty.value < max) qty.value = +qty.value + 1; });
+
+// Interactive Gallery and Swatches
+const mainImage = document.getElementById('mainImage');
+const swatches = document.querySelectorAll('.color-swatch-circle');
+const thumbs = document.querySelectorAll('.thumb-item');
+const selectedColorInput = document.getElementById('selectedColorInput');
+const addToCartBtn = document.getElementById('addToCartBtn');
+
+// Thumbnail clicks
+thumbs.forEach((thumb) => {
+  thumb.addEventListener('click', () => {
+    thumbs.forEach(t => t.classList.remove('active'));
+    thumb.classList.add('active');
+    if (mainImage) {
+      mainImage.src = thumb.dataset.path;
+    }
+  });
+});
+
+// Color swatch clicks
+swatches.forEach((swatch) => {
+  swatch.addEventListener('click', () => {
+    const isAlreadyActive = swatch.classList.contains('active');
+    
+    // Toggle active state
+    swatches.forEach(s => s.classList.remove('active'));
+    
+    if (isAlreadyActive) {
+      // Deselect
+      selectedColorInput.value = "";
+      // Show all thumbnails
+      thumbs.forEach(t => t.style.display = 'block');
+    } else {
+      // Select color
+      swatch.classList.add('active');
+      const colorName = swatch.dataset.colorName;
+      selectedColorInput.value = colorName;
+      
+      // Filter thumbnails: show only general images and color-specific images
+      let firstMatch = null;
+      thumbs.forEach((t) => {
+        const thumbColor = t.dataset.color;
+        if (!thumbColor || thumbColor === colorName) {
+          t.style.display = 'block';
+          if (thumbColor === colorName && !firstMatch) {
+            firstMatch = t;
+          }
+        } else {
+          t.style.display = 'none';
+        }
+      });
+      
+      // If a color-specific image exists, set it as active main image
+      if (firstMatch) {
+        thumbs.forEach(t => t.classList.remove('active'));
+        firstMatch.classList.add('active');
+        if (mainImage) {
+          mainImage.src = firstMatch.dataset.path;
+        }
+      }
+    }
+  });
+});
+
+document.getElementById('addToCartBtn')?.addEventListener('click', function() {
+  const btn = this;
+  const selectedColor = selectedColorInput ? selectedColorInput.value : "";
+  
+  // Validation: If colors exist and none is selected
+  if (swatches.length > 0 && !selectedColor) {
+    alert('Lütfen bir çiçek rengi seçiniz.');
+    return;
+  }
+
+  Cart.add({
+    product_id: +btn.dataset.id,
+    title: btn.dataset.title,
+    price: +btn.dataset.price,
+    slug: btn.dataset.slug,
+    quantity: +qty.value,
+    selected_color: selectedColor || null
+  });
+  
+  // Micro-interaction for add to cart success
+  const orig = btn.textContent;
+  btn.textContent = '✓ Sepete Eklendi!';
+  const originalBg = btn.style.backgroundColor;
+  btn.style.backgroundColor = '#16a34a';
+  setTimeout(() => { 
+    btn.textContent = orig;
+    btn.style.backgroundColor = originalBg;
+  }, 1500);
+});
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,313 @@
+<%- include('../../partials/admin-layout-start') %>
+
+<form id="orgForm" class="form-admin admin-card" data-id="<%= org ? org.id : '' %>">
+  <div class="form-row">
+    <div>
+      <label>Başlık *</label>
+      <input type="text" name="title" value="<%= org?.title || '' %>" required>
+    </div>
+    <div>
+      <label>Kategori</label>
+      <select name="category_id">
+        <option value="">— Seçin —</option>
+        <% orgCategories.forEach(function(c) { %>
+          <option value="<%= c.id %>" <%= org?.category_id == c.id ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div>
+      <label>Konum</label>
+      <input type="text" name="location" value="<%= org?.location || '' %>" placeholder="Teslimat bölgesi — örn. Konya">
+    </div>
+    <div>
+      <label>Etkinlik Tarihi</label>
+      <input type="date" name="event_date" value="<%= org?.event_date || '' %>">
+    </div>
+  </div>
+  <div>
+    <label>Açıklama</label>
+    <textarea name="description"><%= org?.description || '' %></textarea>
+  </div>
+  <label class="checkbox-row"><input type="checkbox" name="is_published" <%= !org || org.is_published ? 'checked' : '' %>> Yayında</label>
+  <label class="checkbox-row"><input type="checkbox" name="is_featured" <%= org?.is_featured ? 'checked' : '' %>> Öne çıkan</label>
+
+  <hr style="margin:1.5rem 0;border:none;border-top:1px solid #e5e5e5">
+  <div class="form-group">
+    <label style="font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem;">Görseller</label>
+    
+    <!-- Drag & Drop Zone -->
+    <div class="upload-dropzone" id="uploadDropzone">
+      <svg class="upload-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <div class="upload-text">Görselleri sürükleyip bırakın veya <span>dosya seçin</span></div>
+      <div class="upload-subtext">Birden fazla görsel seçip tek seferde yükleyebilirsiniz.</div>
+      <input type="file" id="orgImageUpload" accept="image/*" multiple style="display: none;">
+    </div>
+
+    <!-- Upload Progress bar -->
+    <div id="uploadProgress" class="upload-progress-container" style="display: none;">
+      <div class="progress-info">
+        <span id="progressStatus">Görseller yükleniyor...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
+    </div>
+
+    <!-- Image Previews Grid -->
+    <div class="image-preview-grid" id="imagePreviewGrid">
+      <% if (org && org.images && org.images.length) { %>
+        <% org.images.forEach(function(img) { %>
+          <div class="preview-item" data-image-id="<%= img.id %>">
+            <img src="<%= img.path %>" alt="">
+            <button type="button" class="btn-remove-existing-img" data-image-id="<%= img.id %>" title="Görseli Sil">&times;</button>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-admin">Kaydet</button>
+    <a href="/admin/organizasyonlar" class="btn-admin btn-admin-outline">İptal</a>
+  </div>
+</form>
+
+<script>
+const orgForm = document.getElementById('orgForm');
+const fileInput = document.getElementById('orgImageUpload');
+const dropzone = document.getElementById('uploadDropzone');
+const previewGrid = document.getElementById('imagePreviewGrid');
+const progressContainer = document.getElementById('uploadProgress');
+const progressStatus = document.getElementById('progressStatus');
+const progressPercent = document.getElementById('progressPercent');
+const progressBarFill = document.getElementById('progressBarFill');
+
+let selectedFiles = []; // Holds file objects for new organizations
+
+// Click dropzone to open file dialog
+dropzone.addEventListener('click', () => fileInput.click());
+
+// Drag and drop event listeners
+dropzone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropzone.classList.add('dragover');
+});
+dropzone.addEventListener('dragleave', () => {
+  dropzone.classList.remove('dragover');
+});
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) {
+    handleFilesSelected(e.dataTransfer.files);
+  }
+});
+
+// File input change
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files.length) {
+    handleFilesSelected(e.target.files);
+  }
+});
+
+// Remove existing image click handler (delegation)
+previewGrid.addEventListener('click', async (e) => {
+  const deleteBtn = e.target.closest('.btn-remove-existing-img');
+  if (deleteBtn) {
+    const imageId = deleteBtn.dataset.imageId;
+    if (!confirm('Bu görseli silmek istediğinizden emin misiniz?')) return;
+    
+    try {
+      const res = await fetch(`/api/admin/organizations/images/${imageId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        const item = deleteBtn.closest('.preview-item');
+        if (item) item.remove();
+      } else {
+        const data = await res.json();
+        alert('Hata: ' + (data.error || 'Görsel silinemedi'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Görsel silinirken bağlantı hatası oluştu.');
+    }
+  }
+  
+  // Remove local temporary image (for unsaved new organizations)
+  const removeLocalBtn = e.target.closest('.btn-remove-local-img');
+  if (removeLocalBtn) {
+    const index = parseInt(removeLocalBtn.dataset.index, 10);
+    // Revoke the object URL to prevent memory leak
+    const imgElement = removeLocalBtn.previousElementSibling;
+    if (imgElement && imgElement.src.startsWith('blob:')) {
+      URL.revokeObjectURL(imgElement.src);
+    }
+    // Remove from array and DOM
+    selectedFiles = selectedFiles.filter((_, idx) => idx !== index);
+    removeLocalBtn.closest('.preview-item').remove();
+    // Re-index remaining local items
+    reindexLocalPreviews();
+  }
+});
+
+function reindexLocalPreviews() {
+  const localPreviews = previewGrid.querySelectorAll('.preview-item.local-preview');
+  localPreviews.forEach((item, index) => {
+    item.dataset.index = index;
+    const btn = item.querySelector('.btn-remove-local-img');
+    if (btn) btn.dataset.index = index;
+  });
+}
+
+async function handleFilesSelected(files) {
+  const id = orgForm.dataset.id;
+  
+  if (id) {
+    // Edit mode: Upload immediately!
+    progressContainer.style.display = 'block';
+    const total = files.length;
+    let successCount = 0;
+    
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      const percent = Math.round((i / total) * 100);
+      progressStatus.textContent = `Yükleniyor: ${i + 1}/${total} (${file.name})`;
+      progressPercent.textContent = `${percent}%`;
+      progressBarFill.style.width = `${percent}%`;
+      
+      const fd = new FormData();
+      fd.append('image', file);
+      
+      try {
+        const res = await fetch(`/api/admin/organizations/${id}/images`, {
+          method: 'POST',
+          body: fd
+        });
+        if (res.ok) successCount++;
+      } catch (err) {
+        console.error('Dosya yükleme hatası:', file.name, err);
+      }
+    }
+    
+    progressStatus.textContent = `Yükleme tamamlandı: ${successCount}/${total} görsel yüklendi.`;
+    progressPercent.textContent = '100%';
+    progressBarFill.style.width = '100%';
+    
+    setTimeout(() => {
+      location.reload();
+    }, 800);
+    
+  } else {
+    // Create mode: store files in memory and display local preview
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      selectedFiles.push(file);
+      
+      const url = URL.createObjectURL(file);
+      const index = selectedFiles.length - 1;
+      
+      const previewDiv = document.createElement('div');
+      previewDiv.className = 'preview-item local-preview';
+      previewDiv.dataset.index = index;
+      previewDiv.innerHTML = `
+        <img src="${url}" alt="">
+        <button type="button" class="btn-remove-local-img" data-index="${index}" title="Görseli Kaldır">&times;</button>
+      `;
+      previewGrid.appendChild(previewDiv);
+    }
+  }
+}
+
+orgForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const id = f.dataset.id;
+  
+  const body = {
+    title: f.title.value,
+    category_id: f.category_id.value || null,
+    location: f.location.value,
+    event_date: f.event_date.value || null,
+    description: f.description.value,
+    is_published: f.is_published.checked,
+    is_featured: f.is_featured.checked,
+  };
+  
+  // Disable submit button during action
+  const submitBtn = f.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Kaydediliyor...';
+  
+  try {
+    const res = await fetch(id ? `/api/admin/organizations/${id}` : '/api/admin/organizations', {
+      method: id ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Kaydet';
+      return;
+    }
+    
+    const newId = id || data.id;
+    
+    // If we have local files to upload (Create mode files)
+    if (!id && selectedFiles.length > 0) {
+      progressContainer.style.display = 'block';
+      const total = selectedFiles.length;
+      let successCount = 0;
+      
+      for (let i = 0; i < total; i++) {
+        const file = selectedFiles[i];
+        const percent = Math.round((i / total) * 100);
+        progressStatus.textContent = `Yükleniyor: ${i + 1}/${total} (${file.name})`;
+        progressPercent.textContent = `${percent}%`;
+        progressBarFill.style.width = `${percent}%`;
+        
+        const fd = new FormData();
+        fd.append('image', file);
+        
+        try {
+          const uploadRes = await fetch(`/api/admin/organizations/${newId}/images`, {
+            method: 'POST',
+            body: fd
+          });
+          if (uploadRes.ok) successCount++;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      
+      progressStatus.textContent = `Yükleme tamamlandı.`;
+      progressPercent.textContent = '100%';
+      progressBarFill.style.width = '100%';
+    }
+    
+    if (!id) {
+      location.href = '/admin/organizasyonlar';
+    } else {
+      alert('Kaydedildi');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Kaydet';
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Bir hata oluştu.');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Kaydet';
+  }
+});
+</script>
+
+<%- include('../../partials/admin-layout-end') %>
+

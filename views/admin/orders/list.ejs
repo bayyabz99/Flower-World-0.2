@@ -1,0 +1,545 @@
+<%- include('../../partials/admin-layout-start') %>
+
+<div class="admin-card">
+  <div class="table-wrap">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Sipariş No</th>
+        <th>Müşteri</th>
+        <th>Ödeme</th>
+        <th>Toplam</th>
+        <th>Durum</th>
+        <th>Tarih</th>
+        <th style="width: 80px; text-align: center;">Aksiyon</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% const paymentLabels = { credit_card: 'Kredi Kartı', cash_on_delivery: 'Kapıda Nakit', card_on_delivery: 'Kapıda Kart' }; %>
+      <% const statusLabels = { new: 'Yeni', confirmed: 'Onaylandı', shipped: 'Kargolandı', delivered: 'Teslim Edildi', cancelled: 'İptal Edildi' }; %>
+      <% orders.forEach(function(o) { %>
+        <tr class="order-row" data-order-id="<%= o.id %>">
+          <td><strong><%= o.order_number %></strong></td>
+          <td><%= o.customer_name %><br><small><%= o.customer_phone %></small></td>
+          <td><%= paymentLabels[o.payment_method] || o.payment_method %></td>
+          <td><%= formatPrice(o.total) %></td>
+          <td>
+            <span class="status-badge status-order-<%= o.order_status %>">
+              <%= statusLabels[o.order_status] || o.order_status %>
+            </span>
+          </td>
+          <td><%= new Date(o.created_at).toLocaleString('tr-TR') %></td>
+          <td style="text-align: center;">
+            <button type="button" class="btn-admin btn-admin-outline btn-admin-sm open-order-btn" style="width: auto; padding: 0.35rem 0.75rem;" data-order-id="<%= o.id %>">
+              İncele
+            </button>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Order Details Modal Backdrop -->
+<div class="modal-backdrop" id="orderModalBackdrop">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 id="modalOrderNumber">Sipariş Detayı</h2>
+      <button type="button" class="modal-close-btn" id="closeModalBtn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div class="modal-grid">
+        <!-- Left: Customer Delivery Details -->
+        <div class="detail-section">
+          <h4>Teslimat & Alıcı Bilgileri</h4>
+          <div class="info-list">
+            <div class="info-item">
+              <span class="info-label">Alıcı Adı</span>
+              <span class="info-value" id="valCustomerName">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Telefon</span>
+              <span class="info-value" id="valCustomerPhone">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">E-posta</span>
+              <span class="info-value" id="valCustomerEmail">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">İlçe / İl</span>
+              <span class="info-value" id="valCustomerLocation">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Açık Adres</span>
+              <span class="info-value" id="valCustomerAddress">-</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Sipariş Notu</span>
+              <span class="info-value" id="valCustomerNotes" style="font-style: italic; color: #64748b;">-</span>
+            </div>
+          </div>
+          <div class="action-row">
+            <button type="button" class="btn-copy" id="btnCopyAddress">
+              📋 Adresi Kopyala
+            </button>
+            <a href="#" target="_blank" class="btn-whatsapp" id="btnWhatsApp">
+              💬 WhatsApp'tan Yaz
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: Order Items & Pricing & Status -->
+        <div class="detail-section" style="display: flex; flex-direction: column;">
+          <h4>Sipariş Detayları & Ödeme</h4>
+          <div style="flex: 1; min-height: 180px; overflow-y: auto;">
+            <table class="order-items-table">
+              <thead>
+                <tr>
+                  <th>Ürün</th>
+                  <th style="text-align: center;">Adet</th>
+                  <th style="text-align: right;">Birim</th>
+                  <th style="text-align: right;">Toplam</th>
+                </tr>
+              </thead>
+              <tbody id="modalOrderItemsBody">
+                <!-- Dynamic Items -->
+              </tbody>
+            </table>
+          </div>
+          <div class="totals-box">
+            <div class="total-row">
+              <span>Ara Toplam</span>
+              <span id="valSubtotal">-</span>
+            </div>
+            <div class="total-row">
+              <span>Kargo Ücreti</span>
+              <span id="valShipping">-</span>
+            </div>
+            <div class="total-row grand-total">
+              <span>Genel Toplam</span>
+              <span id="valTotal">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons on State -->
+      <div class="detail-section" style="margin-top: 1rem;">
+        <h4>Durum Yönetimi</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 600; color: var(--admin-muted); display: block; margin-bottom: 0.35rem; text-transform: uppercase;">Sipariş Durumu</label>
+            <select id="selectOrderStatus" class="form-admin" style="font-size: 0.85rem; padding: 0.5rem; width: 100%;">
+              <option value="new">Yeni</option>
+              <option value="confirmed">Onaylandı</option>
+              <option value="shipped">Kargolandı</option>
+              <option value="delivered">Teslim Edildi</option>
+              <option value="cancelled">İptal Edildi</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.75rem; font-weight: 600; color: var(--admin-muted); display: block; margin-bottom: 0.35rem; text-transform: uppercase;">Ödeme Durumu</label>
+            <select id="selectPaymentStatus" class="form-admin" style="font-size: 0.85rem; padding: 0.5rem; width: 100%;">
+              <option value="pending">Bekliyor (Pending)</option>
+              <option value="paid">Ödendi (Paid)</option>
+              <option value="failed">Başarısız (Failed)</option>
+              <option value="refunded">İade Edildi (Refunded)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <div class="footer-actions-left" id="modalQuickActions">
+        <!-- Quick Action Trigger Buttons based on State -->
+      </div>
+      <div class="footer-actions-right">
+        <button type="button" class="btn-print" id="btnPrintSlip">
+          🖨️ Yazdır / Fiş Çıkar
+        </button>
+        <button type="button" class="btn-admin" id="btnSaveStatus">
+          Kaydet
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Print Slip (Hidden on Screen, visible on @media print) -->
+<div id="print-slip">
+  <div class="print-header">
+    <div class="print-title">FLOWER ÇİÇEKÇİLİK</div>
+    <div class="print-meta">
+      <strong>Sipariş No:</strong> <span id="printOrderNo">-</span><br>
+      <strong>Tarih:</strong> <span id="printOrderDate">-</span>
+    </div>
+  </div>
+  <div class="print-grid">
+    <div class="print-col">
+      <h3>Alıcı / Teslimat Bilgileri</h3>
+      <p><strong>Ad Soyad:</strong> <span id="printCustomerName">-</span></p>
+      <p><strong>Telefon:</strong> <span id="printCustomerPhone">-</span></p>
+      <p><strong>E-posta:</strong> <span id="printCustomerEmail">-</span></p>
+      <p><strong>Adres:</strong> <span id="printCustomerAddress">-</span></p>
+      <p><strong>İlçe / İl:</strong> <span id="printCustomerLocation">-</span></p>
+    </div>
+    <div class="print-col">
+      <h3>Sipariş Ödemesi</h3>
+      <p><strong>Ödeme Tipi:</strong> <span id="printPaymentMethod">-</span></p>
+      <p><strong>Ödeme Durumu:</strong> <span id="printPaymentStatus">-</span></p>
+      <p><strong>Sipariş Notu:</strong> <span id="printCustomerNotes" style="font-style: italic;">-</span></p>
+    </div>
+  </div>
+  
+  <h3>Sipariş İçeriği</h3>
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th>Ürün Adı</th>
+        <th style="width: 80px; text-align: center;">Adet</th>
+        <th style="width: 120px; text-align: right;">Birim Fiyat</th>
+        <th style="width: 120px; text-align: right;">Toplam</th>
+      </tr>
+    </thead>
+    <tbody id="printOrderItemsBody">
+      <!-- Items dynamically populated -->
+    </tbody>
+  </table>
+  
+  <div class="print-totals">
+    <div class="print-total-row">
+      <span>Ara Toplam:</span>
+      <span id="printSubtotal">-</span>
+    </div>
+    <div class="print-total-row">
+      <span>Kargo Ücreti:</span>
+      <span id="printShipping">-</span>
+    </div>
+    <div class="print-total-row bold">
+      <span>Genel Toplam:</span>
+      <span id="printTotal">-</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// Price formatter helper
+function formatTRY(price) {
+  if (price == null) return '';
+  return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(price);
+}
+
+// Map order/payment status text labels
+const statusLabels = {
+  new: 'Yeni',
+  confirmed: 'Onaylandı',
+  shipped: 'Kargolandı',
+  delivered: 'Teslim Edildi',
+  cancelled: 'İptal Edildi'
+};
+const paymentLabels = {
+  pending: 'Bekliyor',
+  paid: 'Ödendi',
+  failed: 'Başarısız',
+  refunded: 'İade Edildi'
+};
+const paymentMethodLabels = {
+  credit_card: 'Kredi Kartı',
+  cash_on_delivery: 'Kapıda Nakit',
+  card_on_delivery: 'Kapıda Kart'
+};
+
+let currentOrder = null;
+
+// Selectors
+const modalBackdrop = document.getElementById('orderModalBackdrop');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const openModalButtons = document.querySelectorAll('.open-order-btn');
+const orderRows = document.querySelectorAll('.order-row');
+
+// Modal Elements
+const modalOrderNumber = document.getElementById('modalOrderNumber');
+const valCustomerName = document.getElementById('valCustomerName');
+const valCustomerPhone = document.getElementById('valCustomerPhone');
+const valCustomerEmail = document.getElementById('valCustomerEmail');
+const valCustomerLocation = document.getElementById('valCustomerLocation');
+const valCustomerAddress = document.getElementById('valCustomerAddress');
+const valCustomerNotes = document.getElementById('valCustomerNotes');
+const modalOrderItemsBody = document.getElementById('modalOrderItemsBody');
+const valSubtotal = document.getElementById('valSubtotal');
+const valShipping = document.getElementById('valShipping');
+const valTotal = document.getElementById('valTotal');
+const selectOrderStatus = document.getElementById('selectOrderStatus');
+const selectPaymentStatus = document.getElementById('selectPaymentStatus');
+const modalQuickActions = document.getElementById('modalQuickActions');
+const btnWhatsApp = document.getElementById('btnWhatsApp');
+const btnCopyAddress = document.getElementById('btnCopyAddress');
+const btnPrintSlip = document.getElementById('btnPrintSlip');
+const btnSaveStatus = document.getElementById('btnSaveStatus');
+
+// Print Elements
+const printOrderNo = document.getElementById('printOrderNo');
+const printOrderDate = document.getElementById('printOrderDate');
+const printCustomerName = document.getElementById('printCustomerName');
+const printCustomerPhone = document.getElementById('printCustomerPhone');
+const printCustomerEmail = document.getElementById('printCustomerEmail');
+const printCustomerAddress = document.getElementById('printCustomerAddress');
+const printCustomerLocation = document.getElementById('printCustomerLocation');
+const printPaymentMethod = document.getElementById('printPaymentMethod');
+const printPaymentStatus = document.getElementById('printPaymentStatus');
+const printCustomerNotes = document.getElementById('printCustomerNotes');
+const printOrderItemsBody = document.getElementById('printOrderItemsBody');
+const printSubtotal = document.getElementById('printSubtotal');
+const printShipping = document.getElementById('printShipping');
+const printTotal = document.getElementById('printTotal');
+
+// Modal actions
+function openModal() {
+  modalBackdrop.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  modalBackdrop.classList.remove('open');
+  document.body.style.overflow = '';
+  currentOrder = null;
+}
+
+closeModalBtn.addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', (e) => {
+  if (e.target === modalBackdrop) closeModal();
+});
+
+// Fetch and load order details
+async function loadOrderDetails(orderId) {
+  try {
+    const res = await fetch(`/api/admin/orders/${orderId}`);
+    if (!res.ok) throw new Error('Sipariş yüklenemedi');
+    const order = await res.json();
+    currentOrder = order;
+
+    // Fill screen modal details
+    modalOrderNumber.textContent = `Sipariş Detayı - #${order.order_number}`;
+    valCustomerName.textContent = order.customer_name;
+    valCustomerPhone.innerHTML = `<a href="tel:${order.customer_phone}" style="color: var(--admin-primary); text-decoration: none; font-weight: 600;">${order.customer_phone}</a>`;
+    valCustomerEmail.textContent = order.customer_email || 'Girilmemiş';
+    valCustomerLocation.textContent = `${order.district || ''} / ${order.city || ''}`;
+    valCustomerAddress.textContent = order.address;
+    valCustomerNotes.textContent = order.notes || 'Not eklenmemiş';
+
+    // Dropdowns
+    selectOrderStatus.value = order.order_status;
+    selectPaymentStatus.value = order.payment_status;
+
+    // Render items table
+    modalOrderItemsBody.innerHTML = '';
+    order.items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${item.title}</strong></td>
+        <td style="text-align: center;">${item.quantity}</td>
+        <td style="text-align: right;">${formatTRY(item.price)}</td>
+        <td style="text-align: right; font-weight: 600;">${formatTRY(item.price * item.quantity)}</td>
+      `;
+      modalOrderItemsBody.appendChild(tr);
+    });
+
+    // Totals
+    valSubtotal.textContent = formatTRY(order.subtotal);
+    valShipping.textContent = order.shipping > 0 ? formatTRY(order.shipping) : 'Ücretsiz';
+    valTotal.textContent = formatTRY(order.total);
+
+    // Copy address action
+    btnCopyAddress.onclick = (e) => {
+      e.stopPropagation();
+      const copyText = `Alıcı Adı: ${order.customer_name}\nTelefon: ${order.customer_phone}\nAdres: ${order.address}\nİlçe / İl: ${order.district || ''} / ${order.city || ''}`;
+      navigator.clipboard.writeText(copyText).then(() => {
+        const originalText = btnCopyAddress.textContent;
+        btnCopyAddress.textContent = '✅ Adres Kopyalandı!';
+        btnCopyAddress.style.borderColor = '#10b981';
+        btnCopyAddress.style.color = '#10b981';
+        setTimeout(() => {
+          btnCopyAddress.textContent = originalText;
+          btnCopyAddress.style.borderColor = '';
+          btnCopyAddress.style.color = '';
+        }, 2000);
+      });
+    };
+
+    // WhatsApp quick template link
+    const waMessage = encodeURIComponent(`Merhaba Sayın ${order.customer_name},\nFlower Çiçekçilik'ten verdiğiniz #${order.order_number} nolu çiçek siparişiniz hakkında bilgilendirme yapmak için iletişime geçiyoruz.\n\nSipariş Durumu: *${statusLabels[order.order_status]}*\nTutar: *${formatTRY(order.total)}*\n\nİlginiz için teşekkür ederiz.`);
+    btnWhatsApp.href = `https://wa.me/90${order.customer_phone.replace(/\D/g, '')}?text=${waMessage}`;
+    btnWhatsApp.onclick = (e) => {
+      e.stopPropagation();
+    };
+
+    // Fill hidden print slip details
+    printOrderNo.textContent = order.order_number;
+    printOrderDate.textContent = new Date(order.created_at).toLocaleString('tr-TR');
+    printCustomerName.textContent = order.customer_name;
+    printCustomerPhone.textContent = order.customer_phone;
+    printCustomerEmail.textContent = order.customer_email || 'Girilmemiş';
+    printCustomerAddress.textContent = order.address;
+    printCustomerLocation.textContent = `${order.district || ''} / ${order.city || ''}`;
+    printPaymentMethod.textContent = paymentMethodLabels[order.payment_method] || order.payment_method;
+    printPaymentStatus.textContent = paymentLabels[order.payment_status] || order.payment_status;
+    printCustomerNotes.textContent = order.notes || 'Not yok';
+
+    // Print slip table items
+    printOrderItemsBody.innerHTML = '';
+    order.items.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${item.title}</strong></td>
+        <td style="text-align: center;">${item.quantity}</td>
+        <td style="text-align: right;">${formatTRY(item.price)}</td>
+        <td style="text-align: right; font-weight: 600;">${formatTRY(item.price * item.quantity)}</td>
+      `;
+      printOrderItemsBody.appendChild(tr);
+    });
+    
+    printSubtotal.textContent = formatTRY(order.subtotal);
+    printShipping.textContent = order.shipping > 0 ? formatTRY(order.shipping) : 'Ücretsiz';
+    printTotal.textContent = formatTRY(order.total);
+
+    // Print trigger
+    btnPrintSlip.onclick = (e) => {
+      e.stopPropagation();
+      window.print();
+    };
+
+    // Render quick action buttons based on status
+    renderQuickActions(order);
+
+    openModal();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Render dynamic quick action buttons in the footer
+function renderQuickActions(order) {
+  modalQuickActions.innerHTML = '';
+
+  // Confirm order
+  if (order.order_status === 'new') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-success-action';
+    btn.innerHTML = '✔️ Siparişi Onayla';
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      await updateOrderStatus(order.id, 'confirmed');
+    };
+    modalQuickActions.appendChild(btn);
+  }
+
+  // Ship order
+  if (order.order_status === 'confirmed') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-success-action';
+    btn.style.backgroundColor = '#7c3aed'; // Purple
+    btn.innerHTML = '🚚 Kargoya Ver';
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      await updateOrderStatus(order.id, 'shipped');
+    };
+    modalQuickActions.appendChild(btn);
+  }
+
+  // Deliver order
+  if (order.order_status === 'shipped') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-success-action';
+    btn.style.backgroundColor = '#16a34a'; // Green
+    btn.innerHTML = '🎁 Teslim Edildi İşaretle';
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      await updateOrderStatus(order.id, 'delivered', 'paid');
+    };
+    modalQuickActions.appendChild(btn);
+  }
+
+  // Cancel order (available if not delivered or cancelled)
+  if (order.order_status !== 'delivered' && order.order_status !== 'cancelled') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.backgroundColor = '#dc2626'; // Red
+    btn.innerHTML = '❌ Siparişi İptal Et';
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      if (confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')) {
+        await updateOrderStatus(order.id, 'cancelled');
+      }
+    };
+    modalQuickActions.appendChild(btn);
+  }
+}
+
+// Quick action updater helper
+async function updateOrderStatus(orderId, orderStatus, paymentStatus = null) {
+  try {
+    const body = { order_status: orderStatus };
+    if (paymentStatus) {
+      body.payment_status = paymentStatus;
+    }
+    
+    const res = await fetch(`/api/admin/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) throw new Error('Sipariş güncellenemedi');
+    
+    // Close modal and reload page to reflect new values
+    closeModal();
+    window.location.reload();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+// Attach event handlers to buttons & rows
+openModalButtons.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Avoid triggering row click
+    loadOrderDetails(btn.dataset.orderId);
+  });
+});
+
+orderRows.forEach(row => {
+  row.addEventListener('click', () => {
+    loadOrderDetails(row.dataset.orderId);
+  });
+});
+
+// Save dropdown updates
+btnSaveStatus.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  if (!currentOrder) return;
+  try {
+    const res = await fetch(`/api/admin/orders/${currentOrder.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_status: selectOrderStatus.value,
+        payment_status: selectPaymentStatus.value
+      })
+    });
+    
+    if (!res.ok) throw new Error('Güncelleme başarısız');
+    
+    closeModal();
+    window.location.reload();
+  } catch (err) {
+    alert(err.message);
+  }
+});
+</script>
+
+<%- include('../../partials/admin-layout-end') %>

@@ -1,0 +1,45 @@
+<%- include('../../partials/admin-layout-start') %>
+
+<div class="page-actions">
+  <a href="/admin/organizasyonlar/yeni" class="btn-admin">+ Yeni Galeri Kaydı</a>
+</div>
+
+<div class="admin-card">
+  <div class="table-wrap">
+  <table class="admin-table">
+    <thead><tr><th>Başlık</th><th>Kategori</th><th>Durum</th><th>Tarih</th><th></th></tr></thead>
+    <tbody>
+      <% organizations.forEach(function(o) { %>
+        <tr>
+          <td><strong><%= o.title %></strong></td>
+          <td><% if (o.category_name) { %><span class="tag"><%= o.category_name %></span><% } %></td>
+          <td><span class="<%= o.is_published ? 'status-published' : 'status-draft' %>"><%= o.is_published ? 'Yayında' : 'Taslak' %></span></td>
+          <td><%= o.event_date || '—' %></td>
+          <td class="table-actions">
+            <a href="/admin/organizasyonlar/<%= o.id %>/duzenle" class="btn-action btn-edit">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              <span>Düzenle</span>
+            </a>
+            <button type="button" data-id="<%= o.id %>" class="btn-action btn-delete btn-delete-org">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <span>Sil</span>
+            </button>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.btn-delete-org').forEach(btn => {
+  btn.onclick = async () => {
+    if (!confirm('Silinsin mi?')) return;
+    await fetch(`/api/admin/organizations/${btn.dataset.id}`, { method: 'DELETE' });
+    location.reload();
+  };
+});
+</script>
+
+<%- include('../../partials/admin-layout-end') %>

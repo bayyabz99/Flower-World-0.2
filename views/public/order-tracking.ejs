@@ -1,0 +1,648 @@
+<%- include('../partials/header') %>
+
+<div class="container tracking-page-container">
+  <div class="tracking-card">
+    <div class="tracking-card-header">
+      <h2>Sipariş Takibi</h2>
+      <p class="subtitle">Çiçek siparişinizin hazırlık ve teslimat durumunu buradan sorgulayabilirsiniz.</p>
+    </div>
+
+    <!-- Search Form -->
+    <form action="/siparis-takip" method="GET" class="tracking-search-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="no">Sipariş Numarası</label>
+          <input type="text" id="no" name="no" placeholder="Örn: FL20260500001" value="<%= searchNo %>" required class="tracking-input">
+        </div>
+        <div class="form-group">
+          <label for="tel">Telefon Numarası</label>
+          <input type="tel" id="tel" name="tel" placeholder="Siparişteki telefon numarası" value="<%= searchPhone %>" required class="tracking-input">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-track">Siparişi Sorgula</button>
+    </form>
+
+    <% if (error) { %>
+      <div class="tracking-error">
+        ⚠️ <%= error %>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (order) { %>
+    <!-- Order Tracking Info Panel -->
+    <div class="tracking-result-panel">
+      
+      <!-- Order Summary Bar -->
+      <div class="order-summary-bar">
+        <div>
+          <span class="label">SİPARİŞ NO</span>
+          <strong>#<%= order.order_number %></strong>
+        </div>
+        <div>
+          <span class="label">TARİH</span>
+          <strong><%= new Date(order.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></strong>
+        </div>
+        <div>
+          <span class="label">ÖDEME</span>
+          <strong><%= { credit_card: 'Kredi Kartı', cash_on_delivery: 'Kapıda Nakit', card_on_delivery: 'Kapıda Kart' }[order.payment_method] || order.payment_method %></strong>
+        </div>
+        <div>
+          <span class="label">GENEL TOPLAM</span>
+          <strong class="price-highlight"><%= new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(order.total) %></strong>
+        </div>
+      </div>
+
+      <!-- Cancelled State Banner -->
+      <% if (order.order_status === 'cancelled') { %>
+        <div class="tracking-cancelled-banner">
+          <div class="banner-icon">❌</div>
+          <div class="banner-text">
+            <h3>Bu Sipariş İptal Edilmiştir</h3>
+            <p>Siparişiniz iptal edilmiş veya iade edilmiştir. Detaylı bilgi edinmek için müşteri hizmetlerimizle iletişime geçebilirsiniz.</p>
+          </div>
+        </div>
+      <% } else { %>
+        <!-- Visual Timeline Status Steps -->
+        <div class="timeline-container">
+          <h3 class="section-title">💐 Siparişinizin Yolculuğu</h3>
+          
+          <div class="visual-timeline">
+            <!-- Progress Line Indicator -->
+            <div class="timeline-progress-line">
+              <% 
+                let progressPercent = 0;
+                if (order.order_status === 'new') progressPercent = 0;
+                else if (order.order_status === 'confirmed') progressPercent = 33.3;
+                else if (order.order_status === 'shipped') progressPercent = 66.6;
+                else if (order.order_status === 'delivered') progressPercent = 100;
+              %>
+              <div class="timeline-progress-fill" style="width: <%= progressPercent %>%;"></div>
+            </div>
+
+            <!-- Step 1: Sipariş Alındı -->
+            <div class="timeline-step completed active">
+              <div class="step-circle">💐</div>
+              <div class="step-label">Sipariş Alındı</div>
+              <div class="step-date">✓ Tamamlandı</div>
+            </div>
+
+            <!-- Step 2: Onaylandı -->
+            <% 
+              const isConfirmed = ['confirmed', 'shipped', 'delivered'].includes(order.order_status);
+            %>
+            <div class="timeline-step <%= isConfirmed ? 'completed active' : '' %>">
+              <div class="step-circle">🌿</div>
+              <div class="step-label">Hazırlanıyor</div>
+              <div class="step-date">
+                <%= isConfirmed ? '✓ Buket hazırlanıyor' : 'Bekleniyor' %>
+              </div>
+            </div>
+
+            <!-- Step 3: Kargoya Verildi -->
+            <% 
+              const isShipped = ['shipped', 'delivered'].includes(order.order_status);
+            %>
+            <div class="timeline-step <%= isShipped ? 'completed active' : '' %>">
+              <div class="step-circle">🚚</div>
+              <div class="step-label">Yola Çıktı</div>
+              <div class="step-date">
+                <%= isShipped ? '✓ Teslimat yolunda' : 'Bekleniyor' %>
+              </div>
+            </div>
+
+            <!-- Step 4: Teslim Edildi -->
+            <% 
+              const isDelivered = order.order_status === 'delivered';
+            %>
+            <div class="timeline-step <%= isDelivered ? 'completed active' : '' %>">
+              <div class="step-circle">🌸</div>
+              <div class="step-label">Teslim Edildi</div>
+              <div class="step-date">
+                <%= isDelivered ? '✓ Teslim Edildi' : 'Bekleniyor' %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Detailed Info Grid -->
+      <div class="tracking-details-grid">
+        <!-- Left Panel: Delivery Details -->
+        <div class="details-card">
+          <h3>👤 Teslimat Bilgileri</h3>
+          <div class="info-row">
+            <span class="info-label">Alıcı Adı</span>
+            <span class="info-val"><%= order.customer_name %></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Telefon</span>
+            <span class="info-val"><%= order.customer_phone %></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">İlçe / İl</span>
+            <span class="info-val"><%= order.district || '' %> / <%= order.city || '' %></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Açık Adres</span>
+            <span class="info-val"><%= order.address %></span>
+          </div>
+          <% if (order.notes) { %>
+            <div class="info-row" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
+              <span class="info-label" style="display: block; margin-bottom: 0.25rem;">Sipariş Notunuz</span>
+              <span class="info-val" style="font-style: italic; color: #64748b;"><%= order.notes %></span>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Right Panel: Order Products -->
+        <div class="details-card">
+          <h3>🛍️ Sipariş Verilen Buketler</h3>
+          <div class="tracking-items-list">
+            <% order.items.forEach(function(item) { %>
+              <div class="tracking-item">
+                <div class="item-name-box">
+                  <strong><%= item.title %></strong>
+                  <span class="item-qty"><%= item.quantity %> adet</span>
+                </div>
+                <div class="item-price">
+                  <%= new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(item.price * item.quantity) %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+          
+          <div class="tracking-totals-box">
+            <div class="totals-line">
+              <span>Ara Toplam</span>
+              <span><%= new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(order.subtotal) %></span>
+            </div>
+            <div class="totals-line">
+              <span>Kargo Ücreti</span>
+              <span><%= order.shipping > 0 ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(order.shipping) : 'Ücretsiz' %></span>
+            </div>
+            <div class="totals-line grand-total">
+              <span>Genel Toplam</span>
+              <span><%= new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(order.total) %></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  <% } %>
+</div>
+
+<!-- Embedded Premium Styling for Order Tracking Page -->
+<style>
+  .tracking-page-container {
+    max-width: 900px;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tracking-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .tracking-card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .tracking-card-header h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .tracking-card-header .subtitle {
+    color: #64748b;
+    font-size: 1rem;
+  }
+
+  .tracking-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 600px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tracking-input {
+    padding: 0.85rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 1rem;
+    color: #1e293b;
+    background-color: #f8fafc;
+    transition: all 0.25s ease;
+  }
+
+  .tracking-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(4, 120, 87, 0.12);
+  }
+
+  .tracking-error {
+    background-color: #fef2f2;
+    border: 1px solid #fee2e2;
+    color: #dc2626;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-top: 1.5rem;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* Result Panel styling */
+  .tracking-result-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .order-summary-bar {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .order-summary-bar {
+      grid-template-columns: 1fr 1fr;
+      padding: 1.5rem;
+    }
+  }
+
+  .order-summary-bar div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .order-summary-bar .label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .order-summary-bar strong {
+    font-size: 1.1rem;
+    color: #1e293b;
+  }
+
+  .order-summary-bar .price-highlight {
+    color: #047857;
+    font-weight: 700;
+  }
+
+  /* Cancelled State Banner styling */
+  .tracking-cancelled-banner {
+    background-color: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 16px;
+    padding: 1.5rem 2.5rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .tracking-cancelled-banner .banner-icon {
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.1);
+  }
+
+  .tracking-cancelled-banner h3 {
+    color: #c53030;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .tracking-cancelled-banner p {
+    color: #742a2a;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  /* Timeline Container styling */
+  .timeline-container {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+  }
+
+  .section-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2rem;
+  }
+
+  .visual-timeline {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin: 2rem 0;
+  }
+
+  .timeline-progress-line {
+    position: absolute;
+    top: 25px;
+    left: 40px;
+    right: 40px;
+    height: 6px;
+    background-color: #e2e8f0;
+    z-index: 1;
+    border-radius: 10px;
+  }
+
+  .timeline-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .timeline-step {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 120px;
+  }
+
+  .step-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: 3px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #94a3b8;
+    transition: all 0.35s ease;
+    box-shadow: 0 0 0 4px #ffffff;
+  }
+
+  .timeline-step.completed .step-circle {
+    border-color: #10b981;
+    color: #10b981;
+    background-color: #ecfdf5;
+  }
+
+  .timeline-step.completed.active .step-circle {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15), 0 0 0 4px #ffffff;
+    animation: pulseGlow 2s infinite;
+  }
+
+  @keyframes pulseGlow {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+
+  .step-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    transition: color 0.35s ease;
+  }
+
+  .timeline-step.completed .step-label {
+    color: #1e293b;
+  }
+
+  .step-date {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+  }
+
+  .timeline-step.completed .step-date {
+    color: #10b981;
+  }
+
+  @media (max-width: 768px) {
+    .visual-timeline {
+      flex-direction: column;
+      gap: 2.5rem;
+      align-items: flex-start;
+      padding-left: 2rem;
+    }
+
+    .timeline-progress-line {
+      top: 30px;
+      bottom: 30px;
+      left: 48px;
+      width: 6px;
+      height: calc(100% - 60px);
+    }
+
+    .timeline-progress-fill {
+      width: 100% !important;
+      height: 0%;
+    }
+
+    .timeline-step {
+      flex-direction: row;
+      text-align: left;
+      width: 100%;
+      gap: 1.5rem;
+    }
+
+    .step-circle {
+      width: 48px;
+      height: 48px;
+      font-size: 1.25rem;
+    }
+
+    .step-label {
+      margin: 0;
+    }
+  }
+
+  /* Details Grid styling */
+  .tracking-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .tracking-details-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .details-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+  }
+
+  .details-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.75rem;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    font-size: 0.95rem;
+    gap: 1.5rem;
+  }
+
+  .info-label {
+    color: #64748b;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .info-val {
+    color: #1e293b;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .tracking-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .tracking-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 1rem;
+  }
+
+  .item-name-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .item-name-box strong {
+    font-size: 0.95rem;
+    color: #1e293b;
+  }
+
+  .item-qty {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .item-price {
+    font-size: 0.95rem;
+    color: #1e293b;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .tracking-totals-box {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .totals-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .totals-line.grand-total {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.75rem;
+    font-size: 1.1rem;
+    color: #047857;
+    font-weight: 700;
+  }
+</style>
+
+<%- include('../partials/footer') %>

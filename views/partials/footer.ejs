@@ -1,0 +1,31 @@
+</main>
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <h4><%= settings?.site_name || 'Flower Çiçekçilik' %></h4>
+      <p><%= settings?.site_tagline || 'Her Buket Bir Hikâye Anlatır' %></p>
+      <p style="margin-top:.75rem;font-size:.875rem">Konya ve çevresine taze çiçek teslimatı.</p>
+    </div>
+    <div>
+      <h4>Hızlı Linkler</h4>
+      <p><a href="/urunler">Çiçekler & Buketler</a></p>
+      <p><a href="/gerceklestirdigimiz-isler">Teslimat Galerisi</a></p>
+      <p><a href="/siparis-takip">Sipariş Takip</a></p>
+      <p><a href="/iletisim">İletişim</a></p>
+    </div>
+    <div>
+      <h4>İletişim & Teslimat</h4>
+      <p>📍 <%= settings?.contact_address || 'Konya, Türkiye' %></p>
+      <p>📞 <a href="tel:<%= settings?.contact_phone %>"><%= settings?.contact_phone || '0507 544 04 24' %></a></p>
+      <p style="font-size:.85rem;margin-top:.35rem">🕐 Hafta içi & cumartesi · Aynı gün teslimat (sipariş saatine göre)</p>
+      <a href="https://wa.me/<%= settings?.contact_whatsapp || '905075440424' %>" class="whatsapp-btn" target="_blank" rel="noopener">WhatsApp ile Sipariş</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <p>&copy; <%= new Date().getFullYear() %> Flower Çiçekçilik. Tüm hakları saklıdır.</p>
+  </div>
+</footer>
+<script src="/js/cart.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>
